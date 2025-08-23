@@ -16,6 +16,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
+pub use crate::github_oauth::GitHubOAuthClient;
+pub use crate::github_oauth::GitHubTokenData;
 pub use crate::server::LoginServer;
 pub use crate::server::ServerOptions;
 pub use crate::server::ShutdownHandle;
@@ -23,6 +25,11 @@ pub use crate::server::run_login_server;
 pub use crate::token_data::TokenData;
 use crate::token_data::parse_id_token;
 
+// Re-export Copilot helper functions so other crates can delegate token handling
+pub use crate::github_oauth::get_github_copilot_token;
+pub use crate::github_oauth::GITHUB_COPILOT_AUTH_FILE;
+
+mod github_oauth;
 mod pkce;
 mod server;
 mod token_data;

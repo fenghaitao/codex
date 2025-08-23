@@ -65,6 +65,22 @@ base_url = "https://api.mistral.ai/v1"
 env_key = "MISTRAL_API_KEY"
 ```
 
+GitHub Copilot is also supported as a built-in provider. It uses OAuth2 authentication for secure access:
+
+```toml
+model_provider = "github_copilot"
+
+# The github_copilot provider is built-in, but you can override its settings if needed:
+# [model_providers.github_copilot]
+# name = "GitHub Copilot"
+# base_url = "https://api.githubcopilot.com"
+```
+
+To set up GitHub Copilot access:
+1. Run `codex login --github-copilot` to authenticate via OAuth2
+2. This will open your browser to authenticate with GitHub
+3. The OAuth2 token will be automatically saved and used
+
 Note that Azure requires `api-version` to be passed as a query parameter, so be sure to specify it as part of `query_params` when defining the Azure provider:
 
 ```toml

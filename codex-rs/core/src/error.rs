@@ -98,6 +98,10 @@ pub enum CodexErr {
     #[error("codex-linux-sandbox was required but not provided")]
     LandlockSandboxExecutableNotProvided,
 
+    /// GitHub Copilot authentication error
+    #[error("GitHub Copilot authentication required: {0}")]
+    GitHubCopilotAuth(String),
+
     // -----------------------------------------------------------------
     // Automatic conversions for common external error types
     // -----------------------------------------------------------------

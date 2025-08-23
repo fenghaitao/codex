@@ -1,3 +1,4 @@
+use crate::github_login::login_github_copilot;
 use codex_common::CliConfigOverrides;
 use codex_core::config::Config;
 use codex_core::config::ConfigOverrides;
@@ -91,6 +92,21 @@ pub async fn run_login_status(cli_config_overrides: CliConfigOverrides) -> ! {
         }
         Err(e) => {
             eprintln!("Error checking login status: {e}");
+            std::process::exit(1);
+        }
+    }
+}
+
+pub async fn run_login_with_github_copilot(cli_config_overrides: CliConfigOverrides) -> ! {
+    let config = load_config_or_exit(cli_config_overrides);
+
+    match login_github_copilot(&config.codex_home).await {
+        Ok(_) => {
+            eprintln!("Successfully logged in with GitHub Copilot");
+            std::process::exit(0);
+        }
+        Err(e) => {
+            eprintln!("Error logging in with GitHub Copilot: {e}");
             std::process::exit(1);
         }
     }

@@ -325,6 +325,18 @@ query_params = { api-version = "2025-04-01-preview" }
 wire_api = "responses"
 ```
 
+GitHub Copilot is supported as a built-in provider with OAuth2 authentication. To use it:
+
+1. Authenticate with GitHub Copilot: `codex login --github-copilot`
+2. Configure Codex to use GitHub Copilot:
+
+```toml
+model_provider = "github_copilot"
+model = "gpt-4o"  # or another supported model
+```
+
+The OAuth2 authentication provides secure access to GitHub Copilot's models without requiring manual token management.
+
 Once you have defined a provider you wish to use, you can configure it as your default provider as follows:
 
 ```toml

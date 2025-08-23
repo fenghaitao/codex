@@ -95,7 +95,7 @@ impl ModelProviderInfo {
         client: &'a reqwest::Client,
         auth: &Option<CodexAuth>,
     ) -> crate::error::Result<reqwest::RequestBuilder> {
-        let effective_auth = match self.api_key() {
+        let effective_auth = match self.api_key().await {
             Ok(Some(key)) => Some(CodexAuth::from_api_key(&key)),
             Ok(None) => auth.clone(),
             Err(err) => {
@@ -180,7 +180,12 @@ impl ModelProviderInfo {
     /// If `env_key` is Some, returns the API key for this provider if present
     /// (and non-empty) in the environment. If `env_key` is required but
     /// cannot be found, returns an error.
-    pub fn api_key(&self) -> crate::error::Result<Option<String>> {
+    pub async fn api_key(&self) -> crate::error::Result<Option<String>> {
+        // Special handling for GitHub Copilot provider
+        if self.name == "GitHub Copilot" {
+            return self.get_github_copilot_token().await;
+        }
+
         match &self.env_key {
             Some(env_key) => {
                 let env_value = std::env::var(env_key);
@@ -200,6 +205,14 @@ impl ModelProviderInfo {
                     })
             }
             None => Ok(None),
+        }
+    }
+
+    /// Get GitHub Copilot token with automatic refresh if expired
+    async fn get_github_copilot_token(&self) -> crate::error::Result<Option<String>> {
+        match codex_login::get_github_copilot_token().await {
+            Ok(token) => Ok(Some(token)),
+            Err(e) => Err(crate::error::CodexErr::GitHubCopilotAuth(e.to_string())),
         }
     }
 
@@ -273,6 +286,42 @@ pub fn built_in_model_providers() -> HashMap<String, ModelProviderInfo> {
                 stream_max_retries: None,
                 stream_idle_timeout_ms: None,
                 requires_openai_auth: true,
+            },
+        ),
+        (
+            "github_copilot",
+            P {
+                name: "GitHub Copilot".into(),
+                base_url: Some("https://api.githubcopilot.com".into()),
+                env_key: None,
+                env_key_instructions: None,
+                wire_api: WireApi::Chat,
+                query_params: None,
+                http_headers: Some(
+                    [
+                        (
+                            "User-Agent".to_string(),
+                            "GitHubCopilotChat/0.26.7".to_string(),
+                        ),
+                        ("Editor-Version".to_string(), "vscode/1.99.3".to_string()),
+                        (
+                            "Editor-Plugin-Version".to_string(),
+                            "copilot-chat/0.26.7".to_string(),
+                        ),
+                        ("Openai-Version".to_string(), "2024-08-22".to_string()),
+                        (
+                            "Openai-Beta".to_string(),
+                            "chat-completions-required".to_string(),
+                        ),
+                    ]
+                    .into_iter()
+                    .collect(),
+                ),
+                env_http_headers: None,
+                request_max_retries: None,
+                stream_max_retries: None,
+                stream_idle_timeout_ms: None,
+                requires_openai_auth: false,
             },
         ),
         (BUILT_IN_OSS_MODEL_PROVIDER_ID, create_oss_provider()),
@@ -409,5 +458,42 @@ env_http_headers = { "X-Example-Env-Header" = "EXAMPLE_ENV_VAR" }
 
         let provider: ModelProviderInfo = toml::from_str(azure_provider_toml).unwrap();
         assert_eq!(expected_provider, provider);
+    }
+
+    #[test]
+    fn test_github_copilot_provider_is_built_in() {
+        let providers = built_in_model_providers();
+        let github_copilot = providers
+            .get("github_copilot")
+            .expect("GitHub Copilot provider should be built-in");
+
+        assert_eq!(github_copilot.name, "GitHub Copilot");
+        assert_eq!(
+            github_copilot.base_url,
+            Some("https://api.githubcopilot.com".to_string())
+        );
+        assert_eq!(github_copilot.env_key, None);
+        assert_eq!(github_copilot.wire_api, WireApi::Chat);
+        assert!(!github_copilot.requires_openai_auth);
+
+        // Check that required headers are present
+        let headers = github_copilot
+            .http_headers
+            .as_ref()
+            .expect("GitHub Copilot should have HTTP headers");
+        assert!(headers.contains_key("User-Agent"));
+        assert!(headers.contains_key("Editor-Version"));
+        assert!(headers.contains_key("Editor-Plugin-Version"));
+        assert_eq!(
+            headers.get("User-Agent"),
+            Some(&"GitHubCopilotChat/0.26.7".to_string())
+        );
+        assert_eq!(
+            headers.get("Editor-Version"),
+            Some(&"vscode/1.99.3".to_string())
+        );
+
+        // Check that env_key_instructions is None since we handle GitHub Copilot specially
+        assert_eq!(github_copilot.env_key_instructions, None);
     }
 }

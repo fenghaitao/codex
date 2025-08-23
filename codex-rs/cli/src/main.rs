@@ -10,6 +10,7 @@ use codex_cli::SeatbeltCommand;
 use codex_cli::login::run_login_status;
 use codex_cli::login::run_login_with_api_key;
 use codex_cli::login::run_login_with_chatgpt;
+use codex_cli::login::run_login_with_github_copilot;
 use codex_cli::login::run_logout;
 use codex_cli::proto;
 use codex_common::CliConfigOverrides;
@@ -108,6 +109,9 @@ struct LoginCommand {
     #[arg(long = "api-key", value_name = "API_KEY")]
     api_key: Option<String>,
 
+    #[arg(long = "github-copilot")]
+    github_copilot: bool,
+
     #[command(subcommand)]
     action: Option<LoginSubcommand>,
 }
@@ -170,6 +174,8 @@ async fn cli_main(codex_linux_sandbox_exe: Option<PathBuf>) -> anyhow::Result<()
                 None => {
                     if let Some(api_key) = login_cli.api_key {
                         run_login_with_api_key(login_cli.config_overrides, api_key).await;
+                    } else if login_cli.github_copilot {
+                        run_login_with_github_copilot(login_cli.config_overrides).await;
                     } else {
                         run_login_with_chatgpt(login_cli.config_overrides).await;
                     }
